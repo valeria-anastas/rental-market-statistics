@@ -1,0 +1,35 @@
+name: Verify and render Jupyter notebook
+on:
+  push:
+    paths:
+      - '*.ipynb'
+      - '*.csv'
+      - '*.json'
+      - 'requirements.txt'
+      - '.github/workflows/execute-notebook.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt nbconvert ipykernel
+      - name: Execute notebook and save plots
+        run: |
+          jupyter nbconvert --to notebook --execute --inplace rental_market_analysis.ipynb --ExecutePreprocessor.timeout=600
+      - name: Commit notebook outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add rental_market_analysis.ipynb
+          git diff --cached --quiet || (git commit -m "Update executed notebook and charts" && git push)
